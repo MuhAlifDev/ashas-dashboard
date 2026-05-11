@@ -266,20 +266,31 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   const deleteClient = useCallback(
     async (id: string) => {
+      const clientProjectIds = data.projects
+        .filter((p) => p.clientId === id)
+        .map((p) => p.id);
+
       setData((d) => ({
         ...d,
         clients: d.clients.filter((c) => c.id !== id),
-        projects: d.projects.map((p) =>
-          p.clientId === id ? { ...p, clientId: undefined } : p,
-        ),
-        transactions: d.transactions.filter((t) => t.clientId !== id),
-        meetingNotes: d.meetingNotes.filter((m) => m.clientId !== id),
+        projects: d.projects.filter((p) => p.clientId !== id),
+        tasks: d.tasks.filter((t) => !clientProjectIds.includes(t.projectId ?? "")),
         revisions: d.revisions.filter((r) => r.clientId !== id),
+        meetingNotes: d.meetingNotes.filter((m) => m.clientId !== id),
+        transactions: d.transactions.filter((t) => t.clientId !== id),
       }));
+
+      for (const pid of clientProjectIds) {
+        await supabase.from("tasks").delete().eq("project_id", pid);
+        await supabase.from("transactions").delete().eq("project_id", pid);
+        await supabase.from("revisions").delete().eq("project_id", pid);
+      }
       await supabase.from("transactions").delete().eq("client_id", id);
+      await supabase.from("meeting_notes").delete().eq("client_id", id);
+      await supabase.from("projects").delete().eq("client_id", id);
       await supabase.from("clients").delete().eq("id", id);
     },
-    [supabase],
+    [supabase, data.projects],
   );
 
   // ─── PROJECTS ───────────────────────────────────────────
@@ -333,15 +344,15 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       setData((d) => ({
         ...d,
         projects: d.projects.filter((p) => p.id !== id),
-        tasks: d.tasks.map((t) =>
-          t.projectId === id ? { ...t, projectId: undefined } : t,
-        ),
-        transactions: d.transactions.filter((t) => t.projectId !== id),
+        tasks: d.tasks.filter((t) => t.projectId !== id),
+        revisions: d.revisions.filter((r) => r.projectId !== id),
         meetingNotes: d.meetingNotes.map((m) =>
           m.projectId === id ? { ...m, projectId: undefined } : m,
         ),
-        revisions: d.revisions.filter((r) => r.projectId !== id),
+        transactions: d.transactions.filter((t) => t.projectId !== id),
       }));
+      await supabase.from("tasks").delete().eq("project_id", id);
+      await supabase.from("revisions").delete().eq("project_id", id);
       await supabase.from("transactions").delete().eq("project_id", id);
       await supabase.from("projects").delete().eq("id", id);
     },

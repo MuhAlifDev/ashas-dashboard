@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useDashboard } from "../_components/DashboardProvider";
 import PageHeader from "../_components/PageHeader";
+import Button from "../_components/Button";
+import Modal from "../_components/Modal";
 import { daysUntil, formatDate } from "../_lib/format";
 import { getClientColor } from "../_lib/colors";
 import { taskPriorityLabel, taskStatusLabel } from "../_lib/labels";
-import type { TaskPriority, TaskStatus, RevisionStatus } from "../_lib/types";
+import type { TaskPriority, TaskStatus } from "../_lib/types";
 
 type ItemKind = "task" | "revision";
 type FilterType = "all" | "task" | "revision";
@@ -32,14 +34,36 @@ const STATUS_COLOR: Record<string, string> = {
   requested_done: "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
 
+type NewTaskForm = {
+  title: string;
+  priority: TaskPriority;
+  status: TaskStatus;
+  dueDate: string;
+  projectId: string;
+  notes: string;
+};
+
+const DEFAULT_FORM: NewTaskForm = {
+  title: "",
+  priority: "medium",
+  status: "todo",
+  dueDate: "",
+  projectId: "",
+  notes: "",
+};
+
 export default function TasksPage() {
-  const { data, updateTask, updateRevision } = useDashboard();
+  const { data, addTask, updateTask, deleteTask, updateRevision, deleteRevision } = useDashboard();
   const today = todayISO();
 
   const [query, setQuery] = useState("");
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [filterProject, setFilterProject] = useState<string>("all");
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [form, setForm] = useState<NewTaskForm>(DEFAULT_FORM);
+  const [saving, setSaving] = useState(false);
 
   // Build combined list
   type Combined = {
@@ -133,6 +157,33 @@ export default function TasksPage() {
     }
   }
 
+  function handleDelete(item: Combined) {
+    const label = item.kind === "task" ? "task" : "revisi";
+    if (!confirm(`Hapus ${label} "${item.title}"? Tindakan ini tidak bisa dibatalkan.`)) return;
+    if (item.kind === "task") {
+      deleteTask(item.id);
+    } else {
+      deleteRevision(item.id);
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.title.trim()) return;
+    setSaving(true);
+    await addTask({
+      title: form.title.trim(),
+      priority: form.priority,
+      status: form.status,
+      dueDate: form.dueDate || undefined,
+      projectId: form.projectId || undefined,
+      notes: form.notes.trim() || undefined,
+    });
+    setSaving(false);
+    setModalOpen(false);
+    setForm(DEFAULT_FORM);
+  }
+
   const allProjects = data.projects.filter((p) =>
     combined.some((i) => i.projectId === p.id),
   );
@@ -142,6 +193,11 @@ export default function TasksPage() {
       <PageHeader
         title="Task Management"
         description="All tasks and revisions across every project — sorted by deadline"
+        action={
+          <Button onClick={() => { setForm(DEFAULT_FORM); setModalOpen(true); }}>
+            + Tambah Task
+          </Button>
+        }
       />
 
       {/* Stats */}
@@ -219,8 +275,8 @@ export default function TasksPage() {
       {/* List */}
       {filtered.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-gray/40 bg-white py-16 text-center">
-          <p className="text-sm text-slate-gray font-bold">Tidak ada item yang cocok dengan filter.</p>
-          <p className="text-xs text-slate-gray mt-1">Coba ubah filter atau tambah task/revisi dari halaman Project.</p>
+          <p className="text-sm text-slate-gray font-bold">Belum ada task.</p>
+          <p className="text-xs text-slate-gray mt-1">Tambah task baru atau ubah filter yang aktif.</p>
         </div>
       ) : (
         <div className="rounded-lg border border-slate-gray/20 overflow-hidden">
@@ -230,7 +286,7 @@ export default function TasksPage() {
             const isRevision = item.kind === "revision";
             return (
               <div key={`${item.kind}-${item.id}`}
-                className={`flex items-start gap-0 ${i > 0 ? "border-t border-slate-gray/10" : ""} ${item.isDone ? "opacity-60" : ""}`}
+                className={`group flex items-start gap-0 ${i > 0 ? "border-t border-slate-gray/10" : ""} ${item.isDone ? "opacity-60" : ""}`}
                 style={{ backgroundColor: item.light }}>
                 {/* Project color stripe */}
                 <div className="w-1 shrink-0 self-stretch" style={{ background: item.accent }} />
@@ -239,7 +295,7 @@ export default function TasksPage() {
                   {/* Checkbox */}
                   <button
                     onClick={() => toggle(item)}
-                    className={`mt-0.5 shrink-0 h-4.5 h-[18px] w-[18px] rounded border-2 flex items-center justify-center transition-colors ${
+                    className={`mt-0.5 shrink-0 h-[18px] w-[18px] rounded border-2 flex items-center justify-center transition-colors ${
                       item.isDone
                         ? isRevision
                           ? "border-cyan-accent bg-cyan-accent text-navy-dark"
@@ -290,12 +346,14 @@ export default function TasksPage() {
                       </span>
 
                       {/* Project link */}
-                      {item.projectId && item.projectName && (
+                      {item.projectId && item.projectName ? (
                         <Link href={`/projects/${item.projectId}`}
-                          className="text-[10px] font-bold text-slate-gray hover:text-navy-dark truncate max-w-[160px]"
+                          className="text-[10px] font-bold hover:underline truncate max-w-[160px]"
                           style={{ color: item.accent }}>
                           {item.projectName}
                         </Link>
+                      ) : (
+                        <span className="text-[10px] font-bold text-slate-gray/50 italic">Tanpa project</span>
                       )}
                     </div>
                   </div>
@@ -310,6 +368,19 @@ export default function TasksPage() {
                       <span className="text-slate-gray/40">—</span>
                     )}
                   </div>
+
+                  {/* Delete button — visible on hover */}
+                  <button
+                    onClick={() => handleDelete(item)}
+                    className="shrink-0 ml-1 opacity-0 group-hover:opacity-100 rounded p-1 text-slate-gray hover:text-rose-600 hover:bg-rose-50 transition-all"
+                    title="Hapus"
+                  >
+                    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      <path d="M10 11v6M14 11v6" />
+                    </svg>
+                  </button>
                 </div>
               </div>
             );
@@ -317,9 +388,121 @@ export default function TasksPage() {
         </div>
       )}
 
-      <p className="text-xs text-slate-gray text-center mt-4">
-        Tambah task atau revisi baru dari halaman detail project masing-masing.
-      </p>
+      {/* Add Task Modal */}
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="Tambah Task Baru"
+      >
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Title */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-gray mb-1.5">
+              Judul Task <span className="text-rose-500">*</span>
+            </label>
+            <input
+              autoFocus
+              value={form.title}
+              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              placeholder="Contoh: Buat halaman landing"
+              className="w-full rounded-md border border-slate-gray/40 px-3 py-2.5 text-sm focus:border-ashas-blue focus:outline-none focus:ring-2 focus:ring-ashas-blue/20"
+              required
+            />
+          </div>
+
+          {/* Project (optional) */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-gray mb-1.5">
+              Project <span className="text-slate-gray/50 normal-case font-normal">(opsional)</span>
+            </label>
+            <select
+              value={form.projectId}
+              onChange={(e) => setForm((f) => ({ ...f, projectId: e.target.value }))}
+              className="w-full rounded-md border border-slate-gray/40 bg-white px-3 py-2.5 text-sm text-navy-dark focus:border-ashas-blue focus:outline-none"
+            >
+              <option value="">— Tanpa project —</option>
+              {data.projects.map((p) => {
+                const client = data.clients.find((c) => c.id === p.clientId);
+                return (
+                  <option key={p.id} value={p.id}>
+                    {p.name}{client ? ` · ${client.name}` : ""}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Priority */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-gray mb-1.5">
+                Prioritas
+              </label>
+              <select
+                value={form.priority}
+                onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value as TaskPriority }))}
+                className="w-full rounded-md border border-slate-gray/40 bg-white px-3 py-2.5 text-sm text-navy-dark focus:border-ashas-blue focus:outline-none"
+              >
+                <option value="high">Tinggi</option>
+                <option value="medium">Sedang</option>
+                <option value="low">Rendah</option>
+              </select>
+            </div>
+
+            {/* Status */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-gray mb-1.5">
+                Status
+              </label>
+              <select
+                value={form.status}
+                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as TaskStatus }))}
+                className="w-full rounded-md border border-slate-gray/40 bg-white px-3 py-2.5 text-sm text-navy-dark focus:border-ashas-blue focus:outline-none"
+              >
+                <option value="todo">Todo</option>
+                <option value="in-progress">In Progress</option>
+                <option value="done">Done</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Due date */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-gray mb-1.5">
+              Deadline <span className="text-slate-gray/50 normal-case font-normal">(opsional)</span>
+            </label>
+            <input
+              type="date"
+              value={form.dueDate}
+              onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
+              className="w-full rounded-md border border-slate-gray/40 px-3 py-2.5 text-sm focus:border-ashas-blue focus:outline-none focus:ring-2 focus:ring-ashas-blue/20"
+            />
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-gray mb-1.5">
+              Catatan <span className="text-slate-gray/50 normal-case font-normal">(opsional)</span>
+            </label>
+            <textarea
+              value={form.notes}
+              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              rows={2}
+              placeholder="Detail tambahan…"
+              className="w-full rounded-md border border-slate-gray/40 px-3 py-2.5 text-sm resize-none focus:border-ashas-blue focus:outline-none focus:ring-2 focus:ring-ashas-blue/20"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="secondary" type="button" onClick={() => setModalOpen(false)}>
+              Batal
+            </Button>
+            <Button type="submit" disabled={saving || !form.title.trim()}>
+              {saving ? "Menyimpan…" : "Simpan Task"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
