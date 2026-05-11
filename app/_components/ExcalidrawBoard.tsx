@@ -73,7 +73,7 @@ export default function ExcalidrawBoard({ drawing, onSave }: Props) {
       <Excalidraw
         key={drawing.id}
         initialData={initialData}
-        onChange={(elements, appState, files) => handleChange(elements, appState, files as Record<string, unknown>)}
+        onChange={(elements, appState, files) => handleChange(elements, appState as unknown as Record<string, unknown>, files as Record<string, unknown>)}
         theme="light"
         UIOptions={{
           canvasActions: {

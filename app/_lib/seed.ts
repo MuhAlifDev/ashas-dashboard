@@ -226,4 +226,6 @@ export const seedData: DashboardData = {
       createdAt: "2026-03-01T08:00:00.000Z",
     },
   ],
+  dailyLogs: [],
+  drawings: [],
 };
