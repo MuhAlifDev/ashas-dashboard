@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -sS -o NUL -w \"/ → %{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -sS -o NUL -w \"/projects → %{http_code}\\\\n\" http://localhost:3000/projects)",
+      "Bash(curl -sS -o NUL -w \"/clients → %{http_code}\\\\n\" http://localhost:3000/clients)",
+      "Bash(curl -sS -o NUL -w \"/tasks → %{http_code}\\\\n\" http://localhost:3000/tasks)",
+      "Bash(curl -sS -o NUL -w \"/finance → %{http_code}\\\\n\" http://localhost:3000/finance)"
+    ]
+  }
+}
