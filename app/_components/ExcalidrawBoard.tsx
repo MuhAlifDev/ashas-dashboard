@@ -1,7 +1,6 @@
 "use client";
 
 import "@excalidraw/excalidraw/index.css";
-import type { ExcalidrawInitialDataState } from "@excalidraw/excalidraw";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import type { Drawing } from "../_lib/types";
@@ -39,18 +38,16 @@ export default function ExcalidrawBoard({ drawing, onSave }: Props) {
   }, []);
 
   // Parse initial data from stored JSON
-  const initialData: ExcalidrawInitialDataState | undefined = (() => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const initialData: any = (() => {
     try {
       const d = drawing.data as { elements?: unknown[]; appState?: Record<string, unknown>; files?: Record<string, unknown> };
       if (!d || !d.elements) return undefined;
       return {
         elements: d.elements,
-        appState: {
-          ...(d.appState ?? {}),
-          collaborators: new Map(),
-        },
+        appState: { ...(d.appState ?? {}), collaborators: new Map() },
         files: d.files ?? {},
-      } as ExcalidrawInitialDataState;
+      };
     } catch {
       return undefined;
     }
