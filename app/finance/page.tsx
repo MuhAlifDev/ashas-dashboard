@@ -140,7 +140,7 @@ export default function FinancePage() {
 
   return (
     <div>
-      <PageHeader title="Keuangan" description="Laporan keuangan dan manajemen uang agency Anda"
+      <PageHeader title="Financial Management" description="Financial reports and transaction management for your agency"
         action={<div className="flex gap-2"><Button onClick={() => openCreate("income")}>+ Pemasukan</Button><Button variant="secondary" onClick={() => openCreate("expense")}>− Pengeluaran</Button></div>} />
 
       {/* Period selector */}

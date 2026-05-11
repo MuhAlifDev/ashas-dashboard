@@ -118,8 +118,8 @@ export default function ClientsPage() {
   return (
     <div>
       <PageHeader
-        title="Klien"
-        description="Kelola database klien dan prospek agency Anda. Klik kartu untuk lihat detail lengkap."
+        title="Client Management"
+        description="Manage your client and prospect database. Click a card to view full details."
         action={<Button onClick={openCreate}>+ Tambah Klien</Button>}
       />
 

@@ -123,8 +123,8 @@ export default function ProjectsPage() {
   return (
     <div>
       <PageHeader
-        title="Project"
-        description="Lacak progress dan budget tiap project. Deadline mengikuti klien terkait."
+        title="Project Management"
+        description="Track progress and budget for each project. Deadlines follow the linked client."
         action={<Button onClick={openCreate}>+ Tambah Project</Button>}
       />
 

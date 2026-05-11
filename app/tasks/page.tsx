@@ -140,8 +140,8 @@ export default function TasksPage() {
   return (
     <div>
       <PageHeader
-        title="Tugas & Revisi"
-        description="Database seluruh task dan revisi dari semua project — diurutkan berdasarkan deadline"
+        title="Task Management"
+        description="All tasks and revisions across every project — sorted by deadline"
       />
 
       {/* Stats */}

@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 
 const items = [
   { href: "/", label: "Home" },
-  { href: "/clients", label: "Klien" },
-  { href: "/projects", label: "Project" },
-  { href: "/tasks", label: "Tugas" },
-  { href: "/finance", label: "Uang" },
+  { href: "/clients", label: "Clients" },
+  { href: "/projects", label: "Projects" },
+  { href: "/tasks", label: "Tasks" },
+  { href: "/finance", label: "Finance" },
   { href: "/workspace", label: "Board" },
 ];
 

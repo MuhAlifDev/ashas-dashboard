@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDashboard } from "../_components/DashboardProvider";
 import ExcalidrawBoard from "../_components/ExcalidrawBoard";
 import type { Drawing } from "../_lib/types";
@@ -9,9 +9,14 @@ export default function WorkspacePage() {
   const { data, addDrawing, updateDrawing, deleteDrawing } = useDashboard();
   const { drawings } = data;
 
-  const [activeId, setActiveId] = useState<string | null>(
-    drawings[0]?.id ?? null,
-  );
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Auto-select first board once drawings are loaded from storage
+  useEffect(() => {
+    if (activeId === null && drawings.length > 0) {
+      setActiveId(drawings[0].id);
+    }
+  }, [drawings, activeId]);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");

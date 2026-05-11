@@ -20,7 +20,6 @@ import type {
   Task,
   Transaction,
 } from "../_lib/types";
-import { seedData } from "../_lib/seed";
 import { uid } from "../_lib/format";
 import { createClient } from "../_lib/supabase/client";
 import {
@@ -173,13 +172,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         drawings: loadDrawingsFromStorage(user.id),
       };
 
-      // Auto-seed on first login
-      if (fetched.clients.length === 0) {
-        const seeded = await insertSeedData(supabase, user.id);
-        if (!cancelled) setData(seeded);
-      } else {
-        if (!cancelled) setData(fetched);
-      }
+      if (!cancelled) setData(fetched);
 
       if (!cancelled) setReady(true);
     }
@@ -279,12 +272,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         projects: d.projects.map((p) =>
           p.clientId === id ? { ...p, clientId: undefined } : p,
         ),
-        transactions: d.transactions.map((t) =>
-          t.clientId === id ? { ...t, clientId: undefined } : t,
-        ),
+        transactions: d.transactions.filter((t) => t.clientId !== id),
         meetingNotes: d.meetingNotes.filter((m) => m.clientId !== id),
         revisions: d.revisions.filter((r) => r.clientId !== id),
       }));
+      await supabase.from("transactions").delete().eq("client_id", id);
       await supabase.from("clients").delete().eq("id", id);
     },
     [supabase],
@@ -344,14 +336,13 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         tasks: d.tasks.map((t) =>
           t.projectId === id ? { ...t, projectId: undefined } : t,
         ),
-        transactions: d.transactions.map((t) =>
-          t.projectId === id ? { ...t, projectId: undefined } : t,
-        ),
+        transactions: d.transactions.filter((t) => t.projectId !== id),
         meetingNotes: d.meetingNotes.map((m) =>
           m.projectId === id ? { ...m, projectId: undefined } : m,
         ),
         revisions: d.revisions.filter((r) => r.projectId !== id),
       }));
+      await supabase.from("transactions").delete().eq("project_id", id);
       await supabase.from("projects").delete().eq("id", id);
     },
     [supabase],
@@ -746,45 +737,3 @@ export function useDashboard() {
   return ctx;
 }
 
-// ─── SEED DATA INSERT ────────────────────────────────────────
-
-type SB = ReturnType<typeof createClient>;
-
-async function insertSeedData(
-  supabase: SB,
-  userId: string,
-): Promise<DashboardData> {
-  const s = seedData;
-
-  // Step 1 — clients first (no dependencies)
-  const { error: e1 } = await supabase
-    .from("clients")
-    .insert(s.clients.map((c) => toDbClient(c, userId)));
-  if (e1) console.error("[seed] clients:", e1.message);
-
-  // Step 2 — projects (FK → clients)
-  const { error: e2 } = await supabase
-    .from("projects")
-    .insert(s.projects.map((p) => toDbProject(p, userId)));
-  if (e2) console.error("[seed] projects:", e2.message);
-
-  // Step 3 — everything else in parallel (FK → clients + projects)
-  const [r3, r4, r5, r6] = await Promise.all([
-    supabase.from("tasks").insert(s.tasks.map((t) => toDbTask(t, userId))),
-    supabase
-      .from("transactions")
-      .insert(s.transactions.map((t) => toDbTransaction(t, userId))),
-    supabase
-      .from("meeting_notes")
-      .insert(s.meetingNotes.map((m) => toDbMeetingNote(m, userId))),
-    supabase
-      .from("revisions")
-      .insert(s.revisions.map((r) => toDbRevision(r, userId))),
-  ]);
-  if (r3.error) console.error("[seed] tasks:", r3.error.message);
-  if (r4.error) console.error("[seed] transactions:", r4.error.message);
-  if (r5.error) console.error("[seed] meeting_notes:", r5.error.message);
-  if (r6.error) console.error("[seed] revisions:", r6.error.message);
-
-  return s;
-}

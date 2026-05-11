@@ -11,7 +11,7 @@ const navItems = [
   },
   {
     href: "/clients",
-    label: "Klien",
+    label: "Client Management",
     icon: (
       <>
         <circle cx="9" cy="8" r="4" />
@@ -21,14 +21,14 @@ const navItems = [
   },
   {
     href: "/projects",
-    label: "Project",
+    label: "Project Management",
     icon: (
       <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
     ),
   },
   {
     href: "/tasks",
-    label: "Tugas",
+    label: "Task Management",
     icon: (
       <>
         <rect x="4" y="4" width="16" height="16" rx="2" />
@@ -38,7 +38,7 @@ const navItems = [
   },
   {
     href: "/finance",
-    label: "Keuangan",
+    label: "Financial Management",
     icon: (
       <>
         <rect x="3" y="6" width="18" height="13" rx="2" />
