@@ -108,6 +108,25 @@ export type Drawing = {
   createdAt: string;
 };
 
+export type ToolCategory =
+  | "frontend"
+  | "design"
+  | "backend"
+  | "framework"
+  | "cms"
+  | "asset"
+  | "ai-agent"
+  | "other";
+
+export type Tool = {
+  id: string;
+  name: string;
+  category: ToolCategory;
+  description?: string;
+  url?: string;
+  createdAt: string;
+};
+
 export type DashboardData = {
   clients: Client[];
   projects: Project[];
@@ -117,4 +136,5 @@ export type DashboardData = {
   revisions: Revision[];
   dailyLogs: DailyLog[];
   drawings: Drawing[];
+  tools: Tool[];
 };

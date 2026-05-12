@@ -9,4 +9,5 @@ export const seedData: DashboardData = {
   revisions: [],
   dailyLogs: [],
   drawings: [],
+  tools: [],
 };

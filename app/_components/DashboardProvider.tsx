@@ -18,6 +18,7 @@ import type {
   Project,
   Revision,
   Task,
+  Tool,
   Transaction,
 } from "../_lib/types";
 import { uid } from "../_lib/format";
@@ -40,6 +41,25 @@ import {
 } from "../_lib/supabase/db";
 
 const DRAWINGS_KEY = "ashas-drawings:v1";
+const TOOLS_KEY = "ashas-tools:v1";
+
+function loadToolsFromStorage(): Tool[] {
+  try {
+    const raw = window.localStorage.getItem(TOOLS_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as Tool[];
+  } catch {
+    return [];
+  }
+}
+
+function saveToolsToStorage(tools: Tool[]): void {
+  try {
+    window.localStorage.setItem(TOOLS_KEY, JSON.stringify(tools));
+  } catch {
+    // ignore quota errors
+  }
+}
 
 function loadDrawingsFromStorage(_userId: string): Drawing[] {
   try {
@@ -92,6 +112,9 @@ type Ctx = {
   addDrawing: (name: string) => Promise<Drawing | null>;
   updateDrawing: (id: string, patch: { name?: string; data?: Record<string, unknown> }) => Promise<void>;
   deleteDrawing: (id: string) => Promise<void>;
+  addTool: (t: Omit<Tool, "id" | "createdAt">) => Promise<void>;
+  updateTool: (id: string, patch: Partial<Omit<Tool, "id" | "createdAt">>) => Promise<void>;
+  deleteTool: (id: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -104,6 +127,7 @@ const empty: DashboardData = {
   revisions: [],
   dailyLogs: [],
   drawings: [],
+  tools: [],
 };
 
 const DashboardContext = createContext<Ctx | null>(null);
@@ -170,6 +194,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         revisions: rv.data?.map(fromDbRevision) ?? [],
         dailyLogs: dl.data?.map(fromDbDailyLog) ?? [],
         drawings: loadDrawingsFromStorage(user.id),
+        tools: loadToolsFromStorage(),
       };
 
       if (!cancelled) setData(fetched);
@@ -684,6 +709,33 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  // ─── TOOLS (localStorage) ─────────────────────────────────
+  const addTool = useCallback(async (t: Omit<Tool, "id" | "createdAt">) => {
+    const now = new Date().toISOString();
+    const item: Tool = { ...t, id: uid(), createdAt: now };
+    setData((d) => {
+      const newTools = [item, ...d.tools];
+      saveToolsToStorage(newTools);
+      return { ...d, tools: newTools };
+    });
+  }, []);
+
+  const updateTool = useCallback(async (id: string, patch: Partial<Omit<Tool, "id" | "createdAt">>) => {
+    setData((d) => {
+      const newTools = d.tools.map((t) => (t.id === id ? { ...t, ...patch } : t));
+      saveToolsToStorage(newTools);
+      return { ...d, tools: newTools };
+    });
+  }, []);
+
+  const deleteTool = useCallback(async (id: string) => {
+    setData((d) => {
+      const newTools = d.tools.filter((t) => t.id !== id);
+      saveToolsToStorage(newTools);
+      return { ...d, tools: newTools };
+    });
+  }, []);
+
   // ─── AUTH ────────────────────────────────────────────────
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
@@ -718,6 +770,9 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       addDrawing,
       updateDrawing,
       deleteDrawing,
+      addTool,
+      updateTool,
+      deleteTool,
       signOut,
     }),
     [
@@ -731,6 +786,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       addDailyLog, deleteDailyLog,
       duplicateProject,
       addDrawing, updateDrawing, deleteDrawing,
+      addTool, updateTool, deleteTool,
       signOut,
     ],
   );
