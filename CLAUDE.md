@@ -103,7 +103,7 @@ Column naming: snake_case in DB, camelCase in TypeScript. Mapper functions live 
 - `app/_lib/supabase/client.ts` — `createBrowserClient()` for Client Components
 - `app/_lib/supabase/server.ts` — `createServerClient()` for Route Handlers
 - `app/_lib/supabase/db.ts` — `fromDb*` / `toDb*` mapper functions
-- `proxy.ts` — auth guard (Next.js 16 "proxy" convention, replaces middleware.ts)
+- `middleware.ts` — auth guard (standard Next.js Edge Middleware, `export function middleware`)
 - `app/login/page.tsx` — GitHub OAuth login page
 - `app/auth/callback/route.ts` — OAuth callback handler
 - `supabase-schema.sql` — full schema SQL (run once in Supabase SQL Editor)
